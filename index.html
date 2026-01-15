@@ -34,6 +34,23 @@
         <div id="races-container"></div>
     </div>
 
+    <hr>
+
+    <div id="github-section">
+        <h2>GitHub Synchronisatie</h2>
+        <p>Sla je spelers- en racegegevens op in een GitHub repository. Je hebt een <a href="https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/creating-a-personal-access-token" target="_blank">Personal Access Token (PAT)</a> nodig met `repo` scope.</p>
+        <p class="warning"><strong>Waarschuwing:</strong> Behandel je PAT als een wachtwoord. Deel het niet en zorg ervoor dat het veilig wordt opgeslagen.</p>
+
+        <input type="text" id="github-user" placeholder="GitHub Gebruikersnaam">
+        <input type="text" id="github-repo" placeholder="Repository Naam">
+        <input type="text" id="github-path" placeholder="Bestandspad (bijv. data/scores.json)">
+        <input type="password" id="github-pat" placeholder="Personal Access Token">
+        <br><br>
+        <button id="github-load-btn">Laden van GitHub</button>
+        <button id="github-save-btn">Opslaan naar GitHub</button>
+        <p id="github-status"></p>
+    </div>
+
     <script src="script.js"></script>
 </body>
 </html>

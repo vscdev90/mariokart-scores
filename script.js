@@ -4,6 +4,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const playersList = document.getElementById('players-list');
     const raceCountSelect = document.getElementById('race-count');
     const racesContainer = document.getElementById('races-container');
+    const githubUser = document.getElementById('github-user');
+    const githubRepo = document.getElementById('github-repo');
+    const githubPath = document.getElementById('github-path');
+    const githubPat = document.getElementById('github-pat');
+    const githubLoadBtn = document.getElementById('github-load-btn');
+    const githubSaveBtn = document.getElementById('github-save-btn');
+    const githubStatus = document.getElementById('github-status');
 
     let players = JSON.parse(localStorage.getItem('players')) || [];
     let races = JSON.parse(localStorage.getItem('races')) || [];
@@ -100,6 +107,110 @@ document.addEventListener('DOMContentLoaded', () => {
     raceCountSelect.addEventListener('change', () => {
         renderRaces();
     });
+
+    const loadFromGitHub = async () => {
+        const user = githubUser.value.trim();
+        const repo = githubRepo.value.trim();
+        const path = githubPath.value.trim();
+        const pat = githubPat.value.trim();
+
+        if (!user || !repo || !path || !pat) {
+            githubStatus.textContent = 'Vul alle GitHub-velden in.';
+            return;
+        }
+
+        githubStatus.textContent = 'Bezig met laden...';
+        const url = `https://api.github.com/repos/${user}/${repo}/contents/${path}`;
+
+        try {
+            const response = await fetch(url, {
+                headers: {
+                    'Authorization': `token ${pat}`,
+                    'Accept': 'application/vnd.github.v3+json'
+                }
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                const content = atob(data.content);
+                const jsonData = JSON.parse(content);
+
+                players = jsonData.players || [];
+                races = jsonData.races || [];
+
+                savePlayers();
+                saveRaces();
+                renderPlayers();
+                renderRaces();
+                githubStatus.textContent = 'Gegevens succesvol geladen van GitHub!';
+            } else if (response.status === 404) {
+                githubStatus.textContent = 'Bestand niet gevonden. Sla de gegevens op om het aan te maken.';
+            } else {
+                githubStatus.textContent = `Fout bij laden: ${response.statusText}`;
+            }
+        } catch (error) {
+            githubStatus.textContent = `Netwerkfout: ${error.message}`;
+        }
+    };
+
+    githubLoadBtn.addEventListener('click', loadFromGitHub);
+
+    const saveToGitHub = async () => {
+        const user = githubUser.value.trim();
+        const repo = githubRepo.value.trim();
+        const path = githubPath.value.trim();
+        const pat = githubPat.value.trim();
+
+        if (!user || !repo || !path || !pat) {
+            githubStatus.textContent = 'Vul alle GitHub-velden in.';
+            return;
+        }
+
+        githubStatus.textContent = 'Bezig met opslaan...';
+        const url = `https://api.github.com/repos/${user}/${repo}/contents/${path}`;
+        const dataToSave = { players, races };
+        const content = btoa(JSON.stringify(dataToSave, null, 2));
+
+        try {
+            // Stap 1: Probeer het bestand op te halen om de SHA te krijgen
+            let sha = undefined;
+            const getResponse = await fetch(url, {
+                headers: { 'Authorization': `token ${pat}` }
+            });
+            if (getResponse.ok) {
+                const fileData = await getResponse.json();
+                sha = fileData.sha;
+            } else if (getResponse.status !== 404) {
+                githubStatus.textContent = `Fout bij ophalen SHA: ${getResponse.statusText}`;
+                return;
+            }
+
+            // Stap 2: Maak of update het bestand
+            const putResponse = await fetch(url, {
+                method: 'PUT',
+                headers: {
+                    'Authorization': `token ${pat}`,
+                    'Accept': 'application/vnd.github.v3+json',
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    message: `Update Mario Kart scores op ${new Date().toISOString()}`,
+                    content: content,
+                    sha: sha // Voeg SHA toe als het bestand bestaat
+                })
+            });
+
+            if (putResponse.ok) {
+                githubStatus.textContent = 'Gegevens succesvol opgeslagen in GitHub!';
+            } else {
+                githubStatus.textContent = `Fout bij opslaan: ${putResponse.statusText}`;
+            }
+        } catch (error) {
+            githubStatus.textContent = `Netwerkfout: ${error.message}`;
+        }
+    };
+
+    githubSaveBtn.addEventListener('click', saveToGitHub);
 
     renderPlayers();
     renderRaces();
